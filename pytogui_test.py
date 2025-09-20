@@ -9,7 +9,7 @@ print(cur_screen_size)
 is_mouse_on_screen:bool = ptg.onScreen(cur_mouse_pos[0],cur_mouse_pos[1])
 print(is_mouse_on_screen)
 
-ptg.moveTo(cur_screen_size[0]//2, cur_screen_size[1]//2, duration=0.0) # center of screen.
+#ptg.moveTo(cur_screen_size[0]//2, cur_screen_size[1]//2, duration=0.0) # center of screen.
 
 # note that you can also pass None for x,y to not move the mouse anywhere.
 #ptg.doubleClick()
@@ -21,4 +21,4 @@ ptg.moveTo(cur_screen_size[0]//2, cur_screen_size[1]//2, duration=0.0) # center 
 #s = ptg.password(text='', title='', default='', mask='*')
 #print(s)
 
-#ptg.screenshot('foo.png') 
+#ptg.screenshot('images/foo.png') 

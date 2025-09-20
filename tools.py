@@ -3,26 +3,21 @@ import json
 import logging
 
 LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG) 
 
 TOOL_SPEC = [
     {
         "type": "function",
-        "function": {
-            "name": "move_mouse_to",
-            "description": "Move mouse to an (x,y) coordinate on the screen.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "x": {
-                        "type": "int"
-                    },
-                    "y": {
-                        "type": "int"
-                    }
-                },
-                "required": ["x","y"],
-                "additionalProperties": False
-            }
+        "name": "move_mouse_to", 
+        "description": "Move mouse to an (x,y) coordinate on the screen.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "x": {"type": "integer"},
+                "y": {"type": "integer"}
+            },
+            "required": ["x", "y"],
+            "additionalProperties": False
         }
     }
 ]
@@ -41,11 +36,12 @@ def parse_tools(res):
             if call.type == "function_call":
                 name = call.name
                 args = json.loads(call.arguments or "{}")
-                LOGGER.debug("Function tool requested:", name, args)
-                return True,name,args
+                call_id = getattr(call, "call_id", None) or getattr(call, "id", None)
+                LOGGER.debug(f"Function tool requested:{name},{args},call_id={call_id}")
+                return True,name,args,call_id
     else:
         LOGGER.debug("No tool calls. Model returned normal assistant text.")
-        return False,None,None
+        return False,None,None,None
 
 
 def move_mouse_to(x,y):

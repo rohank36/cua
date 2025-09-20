@@ -10,15 +10,19 @@ import logging
 import time
 import uuid
 from tools import TOOL_SPEC, move_mouse_to, parse_tools
+import json
 ################################################################
 load_dotenv()    
 CLIENT = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG) 
+
+os.makedirs("images/", exist_ok=True) 
 ################################################################
 
 def encode_image(image_path):
@@ -67,11 +71,12 @@ COST = 0.0
 
 #user_request = input(">")
 #user_request = user_request.strip(">").strip("")
-user_request = "Open google chrome" 
+user_request = "Move the mouse to google chrome" 
 user_request_prompt = f"Generate a plan that you'll follow to complete the following task:\n{user_request}"
 
 MESSAGES.append({"role":"user","content":user_request_prompt})
-_,res_text,health,cost = llm_call(MESSAGES,GPT_5_NANO,[])
+_,res_text,health,cost = llm_call(MESSAGES,GPT_5_NANO,TOOL_SPEC)
+LOGGER.debug(f"{res_text}")
 HEALTH = health
 COST += cost
 MESSAGES.append({"role":"assistant","content":f"{res_text}\nNow I will execute this plan."})
@@ -83,12 +88,12 @@ while True:
         LOGGER.info(f"System health: {HEALTH}. Terminating agent now.")
         break
 
-    path = f"/images/{uid_hash()}.png"
+    path = f"images/{uid_hash()}.png"
     ptg.screenshot(path) 
     cur_x,cur_y = ptg.position()
     base64_image = encode_image(path)
     MESSAGES.append(
-        {"role":"assistant","content":[
+        {"role":"user","content":[
                 {   "type": "input_text", "text": f"The current mouse position is: ({cur_x},{cur_y})" },
                 {
                     "type": "input_image",
@@ -98,9 +103,10 @@ while True:
         }
     )
     res,res_text,cost, health = llm_call(MESSAGES,GPT_5_NANO,TOOL_SPEC)
+    LOGGER.debug(res_text)
     COST += cost
     HEALTH = health
-    is_tool_call,name,args = parse_tools(res)
+    is_tool_call,name,args,call_id = parse_tools(res)
 
     if is_tool_call:
         result = None
@@ -113,15 +119,19 @@ while True:
             except Exception as e:
                 result = f"Error moving mouse: {e}"
 
+        LOGGER.debug(result)
+
         tool_call_req_msg = {
             "type": "function_call",
             "name": name,
-            "arguments": args or {}
+            "arguments": json.dumps(args or {}),
+            "call_id": call_id,
         }
 
         tool_call_msg = {
             "type": "function_call_output",
             "name": name,
+            "call_id": call_id,
             "output": result
         }
 
