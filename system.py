@@ -39,6 +39,7 @@ def llm_call(messages,model,tool_spec):
     res = CLIENT.responses.create(
         model = model.name,
         text = {"verbosity":model.verbosity}, 
+        reasoning={"effort":model.reasoning},
         tools = tool_spec,
         tool_choice = "auto",
         input = messages
@@ -103,9 +104,11 @@ while True:
         }
     )
     res,res_text,cost, health = llm_call(MESSAGES,GPT_5_NANO,TOOL_SPEC)
-    LOGGER.debug(res_text)
     COST += cost
     HEALTH = health
+    if res_text != "": LOGGER.debug(f"Output Text:\n{res_text}")
+    LOGGER.debug(f"Cost:{COST}")
+    LOGGER.debug(f"Health:{HEALTH}")
     is_tool_call,name,args,call_id = parse_tools(res)
 
     if is_tool_call:
@@ -145,7 +148,7 @@ while True:
     time.sleep(3) 
 
 LOGGER.info("Done.")
-LOGGER.info(f"Health: {HEALTH} | Cost: {COST}")
+LOGGER.info(f"Final Health: {HEALTH} | Final Cost: {COST}")
 LOGGER.info(MESSAGES)
 
 
