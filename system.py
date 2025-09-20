@@ -4,9 +4,20 @@ import os
 from dotenv import load_dotenv
 import base64
 from llms import GPT_5_NANO
+from jinja2 import Template
+from datetime import datetime
+import logging
 
+################################################################
 load_dotenv()    
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+CLIENT = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+LOGGER = logging.getLogger(__name__)
+################################################################
 
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
@@ -19,12 +30,39 @@ def calculate_cost(input_tokens,output_tokens,input_cost,output_cost):
     return input_cost + completion_cost
 
 def llm_call_nano(messages,model):
-    res = client.responses.create(
+    res = CLIENT.responses.create(
         model = model.name,
         text = {"verbosity":model.verbosity}, 
         input = messages
     )
     cost = calculate_cost(res.usage.input_tokens,res.usage.output_tokens,model.input_cost,model.output_cost)
     return res,cost
+
+def get_system_prompt(width, height):
+    with open("prompt.md",encoding='utf-8') as f:
+            raw_md = f.read()
+    template = Template(raw_md)
+    system_prompt = template.render(
+        current_date = str(datetime.today()),
+        width = width,
+        height = height, 
+        center_width = width//2,
+        center_height = height//2,
+        )
+    return system_prompt
+################################################################
+
+MESSAGES = [{"role":"system","content":get_system_prompt(0,0)}]   
+HEALTH = 0.0
+COST = 0.0
+
+LOGGER.info("Starting...")
+while True:
+    if HEALTH > 0.6:
+        LOGGER.info(f"System health: {HEALTH}. Terminating agent now.")
+        break
+
+LOGGER.info("Done.")
+
 
 
