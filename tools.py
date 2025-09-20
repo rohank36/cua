@@ -30,17 +30,17 @@ def parse_tools(res):
             tool_calls.append(item)
 
     if tool_calls:
-        LOGGER.debug(f"Found {len(tool_calls)} tool call(s).")
+        #LOGGER.debug(f"Found {len(tool_calls)} tool call(s).")
         for call in tool_calls:
             # For function tools:
             if call.type == "function_call":
                 name = call.name
                 args = json.loads(call.arguments or "{}")
                 call_id = getattr(call, "call_id", None) or getattr(call, "id", None)
-                LOGGER.debug(f"Function tool requested:{name},{args},call_id={call_id}")
+                #LOGGER.debug(f"Function tool requested:{name},{args},call_id={call_id}")
                 return True,name,args,call_id
     else:
-        LOGGER.debug("No tool calls. Model returned normal assistant text.")
+        LOGGER.debug("No tool calls")
         return False,None,None,None
 
 

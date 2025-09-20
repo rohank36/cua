@@ -97,7 +97,7 @@ while True:
                 {   "type": "input_text", "text": f"The current mouse position is: ({cur_x},{cur_y})" },
                 {
                     "type": "input_image",
-                    "image_url": f"data:image/jpeg;base64,{base64_image}",
+                    "image_url": f"data:image/png;base64,{base64_image}",
                 }
             ]
         }
@@ -135,8 +135,8 @@ while True:
             "output": result
         }
 
-        MESSAGES.append(tool_call_req_msg)
-        MESSAGES.append(tool_call_msg)
+        MESSAGES.append({"role":"assistant","content":json.dumps(tool_call_req_msg)})
+        MESSAGES.append({"role":"assistant","content":json.dumps(tool_call_msg)})
     else:
         LOGGER.info(res_text)
         LOGGER.info("Task completed.")
@@ -146,6 +146,7 @@ while True:
 
 LOGGER.info("Done.")
 LOGGER.info(f"Health: {HEALTH} | Cost: {COST}")
+LOGGER.info(MESSAGES)
 
 
 
