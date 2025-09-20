@@ -11,6 +11,14 @@ print(is_mouse_on_screen)
 
 ptg.moveTo(cur_screen_size[0]//2, cur_screen_size[1]//2, duration=0.0) # center of screen.
 
+# note that you can also pass None for x,y to not move the mouse anywhere.
+#ptg.doubleClick()
 #ptg.click(x=737, y=994, clicks=1, interval=0, button='left') # button can be left, middle, or right.
+#ptg.click(button='right')  # just click
 #ptg.scroll(1000, x=737, y=994)
 #ptg.typewrite('Hello world!\n', interval=0) # /n is enter.
+
+#s = ptg.password(text='', title='', default='', mask='*')
+#print(s)
+
+#ptg.screenshot('foo.png') 
