@@ -1,9 +1,10 @@
 import pyautogui as ptg
+from PIL import Image, ImageDraw
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import base64
-from llms import GPT_5_NANO
+from llms import GPT_5_NANO, GPT_5_MINI
 from jinja2 import Template
 from datetime import datetime
 import logging
@@ -63,6 +64,18 @@ def get_system_prompt(width, height):
 
 def uid_hash()->str:
     return uuid.uuid4().hex
+
+def annotate_with_cursor(img_path, x, y, radius=10):
+    im = Image.open(img_path).convert("RGBA")
+    overlay = Image.new("RGBA", im.size, (0,0,0,0))
+    d = ImageDraw.Draw(overlay)
+    # Halo
+    d.ellipse((x-radius, y-radius, x+radius, y+radius), outline=(255,0,0,255), width=3)
+    # Crosshair
+    d.line((x-15, y, x+15, y), fill=(255,0,0,255), width=2)
+    d.line((x, y-15, x, y+15), fill=(255,0,0,255), width=2)
+    out = Image.alpha_composite(im, overlay).convert("RGB")
+    out.save(img_path)
 ################################################################
 
 width,height = ptg.size()
@@ -90,12 +103,14 @@ while True:
         break
 
     path = f"images/{uid_hash()}.png"
-    ptg.screenshot(path) 
     cur_x,cur_y = ptg.position()
+    ptg.screenshot(path)
+    annotate_with_cursor(path,cur_x,cur_y) 
     base64_image = encode_image(path)
     MESSAGES.append(
         {"role":"user","content":[
                 {   "type": "input_text", "text": f"The current mouse position is: ({cur_x},{cur_y})" },
+                {   "type": "input_text", "text": f"Here is an image of the current screen state" },
                 {
                     "type": "input_image",
                     "image_url": f"data:image/png;base64,{base64_image}",
@@ -103,7 +118,8 @@ while True:
             ]
         }
     )
-    res,res_text,cost, health = llm_call(MESSAGES,GPT_5_NANO,TOOL_SPEC)
+    res,res_text,cost, health = llm_call(MESSAGES,GPT_5_MINI,TOOL_SPEC)
+    MESSAGES.pop()
     COST += cost
     HEALTH = health
     if res_text != "": LOGGER.debug(f"Output Text:\n{res_text}")
@@ -123,7 +139,8 @@ while True:
                 result = f"Error moving mouse: {e}"
 
         LOGGER.debug(result)
-
+        MESSAGES.append({"role":"assistant","content":result})
+        """
         tool_call_req_msg = {
             "type": "function_call",
             "name": name,
@@ -140,6 +157,7 @@ while True:
 
         MESSAGES.append({"role":"assistant","content":json.dumps(tool_call_req_msg)})
         MESSAGES.append({"role":"assistant","content":json.dumps(tool_call_msg)})
+        """
     else:
         LOGGER.info(res_text)
         LOGGER.info("Task completed.")
