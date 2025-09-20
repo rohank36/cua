@@ -7,6 +7,7 @@ from llms import GPT_5_NANO
 from jinja2 import Template
 from datetime import datetime
 import logging
+import time
 
 ################################################################
 load_dotenv()    
@@ -29,14 +30,15 @@ def calculate_cost(input_tokens,output_tokens,input_cost,output_cost):
     completion_cost = (output_tokens/onem) * output_cost
     return input_cost + completion_cost
 
-def llm_call_nano(messages,model):
+def llm_call(messages,model):
     res = CLIENT.responses.create(
         model = model.name,
         text = {"verbosity":model.verbosity}, 
         input = messages
     )
     cost = calculate_cost(res.usage.input_tokens,res.usage.output_tokens,model.input_cost,model.output_cost)
-    return res,cost
+    health = res.usage.input_tokens / model.context_window
+    return res.output_text, cost, health
 
 def get_system_prompt(width, height):
     with open("prompt.md",encoding='utf-8') as f:
@@ -50,9 +52,12 @@ def get_system_prompt(width, height):
         center_height = height//2,
         )
     return system_prompt
+
+# TODO: think about the TOOL calls
 ################################################################
 
-MESSAGES = [{"role":"system","content":get_system_prompt(0,0)}]   
+width,height = ptg.size()
+MESSAGES = [{"role":"system","content":get_system_prompt(width,height)}]   
 HEALTH = 0.0
 COST = 0.0
 
@@ -61,6 +66,11 @@ while True:
     if HEALTH > 0.6:
         LOGGER.info(f"System health: {HEALTH}. Terminating agent now.")
         break
+    res, cost, health = llm_call(MESSAGES)
+    COST += cost
+    HEALTH = health
+    #MESSAGES.append({"role":"assistant","content":res}) # TODO have to think about the process here
+    time.sleep(3) 
 
 LOGGER.info("Done.")
 
