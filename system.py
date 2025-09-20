@@ -8,7 +8,8 @@ from jinja2 import Template
 from datetime import datetime
 import logging
 import time
-
+import uuid
+from tools import TOOL_SPEC, move_mouse_to, parse_tools
 ################################################################
 load_dotenv()    
 CLIENT = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -30,15 +31,17 @@ def calculate_cost(input_tokens,output_tokens,input_cost,output_cost):
     completion_cost = (output_tokens/onem) * output_cost
     return input_cost + completion_cost
 
-def llm_call(messages,model):
+def llm_call(messages,model,tool_spec):
     res = CLIENT.responses.create(
         model = model.name,
         text = {"verbosity":model.verbosity}, 
+        tools = tool_spec,
+        tool_choice = "auto",
         input = messages
     )
     cost = calculate_cost(res.usage.input_tokens,res.usage.output_tokens,model.input_cost,model.output_cost)
     health = res.usage.input_tokens / model.context_window
-    return res.output_text, cost, health
+    return res, res.output_text, cost, health
 
 def get_system_prompt(width, height):
     with open("prompt.md",encoding='utf-8') as f:
@@ -53,7 +56,8 @@ def get_system_prompt(width, height):
         )
     return system_prompt
 
-# TODO: think about the TOOL calls
+def uid_hash()->str:
+    return uuid.uuid4().hex
 ################################################################
 
 width,height = ptg.size()
@@ -61,18 +65,77 @@ MESSAGES = [{"role":"system","content":get_system_prompt(width,height)}]
 HEALTH = 0.0
 COST = 0.0
 
+#user_request = input(">")
+#user_request = user_request.strip(">").strip("")
+user_request = "Open google chrome" 
+user_request_prompt = f"Generate a plan that you'll follow to complete the following task:\n{user_request}"
+
+MESSAGES.append({"role":"user","content":user_request_prompt})
+_,res_text,health,cost = llm_call(MESSAGES,GPT_5_NANO,[])
+HEALTH = health
+COST += cost
+MESSAGES.append({"role":"assistant","content":f"{res_text}\nNow I will execute this plan."})
+
 LOGGER.info("Starting...")
+
 while True:
-    if HEALTH > 0.6:
+    if HEALTH > 0.7:
         LOGGER.info(f"System health: {HEALTH}. Terminating agent now.")
         break
-    res, cost, health = llm_call(MESSAGES)
+
+    path = f"/images/{uid_hash()}.png"
+    ptg.screenshot(path) 
+    cur_x,cur_y = ptg.position()
+    base64_image = encode_image(path)
+    MESSAGES.append(
+        {"role":"assistant","content":[
+                {   "type": "input_text", "text": f"The current mouse position is: ({cur_x},{cur_y})" },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/jpeg;base64,{base64_image}",
+                }
+            ]
+        }
+    )
+    res,res_text,cost, health = llm_call(MESSAGES,GPT_5_NANO,TOOL_SPEC)
     COST += cost
     HEALTH = health
-    #MESSAGES.append({"role":"assistant","content":res}) # TODO have to think about the process here
+    is_tool_call,name,args = parse_tools(res)
+
+    if is_tool_call:
+        result = None
+        if name == "move_mouse_to":
+            x = args.get("x")
+            y = args.get("y")
+            try:
+                move_mouse_to(x, y)
+                result = f"Mouse moved to ({x},{y})"
+            except Exception as e:
+                result = f"Error moving mouse: {e}"
+
+        tool_call_req_msg = {
+            "type": "function_call",
+            "name": name,
+            "arguments": args or {}
+        }
+
+        tool_call_msg = {
+            "type": "function_call_output",
+            "name": name,
+            "output": result
+        }
+
+        MESSAGES.append(tool_call_req_msg)
+        MESSAGES.append(tool_call_msg)
+    else:
+        LOGGER.info(res_text)
+        LOGGER.info("Task completed.")
+        break
+    
     time.sleep(3) 
 
 LOGGER.info("Done.")
+LOGGER.info(f"Health: {HEALTH} | Cost: {COST}")
 
 
 
