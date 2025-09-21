@@ -90,19 +90,22 @@ user_request_prompt = f"Generate a plan that you'll follow to complete the follo
 
 MESSAGES.append({"role":"user","content":user_request_prompt})
 _,res_text,health,cost = llm_call(MESSAGES,GPT_5_NANO,TOOL_SPEC)
+MESSAGES.pop()
+if res_text == "": raise Exception('No plan generated...')
 LOGGER.debug(f"{res_text}")
 HEALTH = health
 COST += cost
-MESSAGES.append({"role":"assistant","content":f"{res_text}\nNow I will execute this plan."})
+MESSAGES.append({"role":"user","content":f"{res_text}\nNow execute this plan to complete the task. Once done ask for further instruction."})
 
 LOGGER.info("Starting...")
-
+img_counter = 1
 while True:
     if HEALTH > 0.7:
         LOGGER.info(f"System health: {HEALTH}. Terminating agent now.")
         break
 
-    path = f"images/{uid_hash()}.png"
+    path = f"images/{img_counter}_{uid_hash()}.png"
+    img_counter += 1
     cur_x,cur_y = ptg.position()
     ptg.screenshot(path)
     annotate_with_cursor(path,cur_x,cur_y) 
@@ -122,7 +125,7 @@ while True:
     MESSAGES.pop()
     COST += cost
     HEALTH = health
-    if res_text != "": LOGGER.debug(f"Output Text:\n{res_text}")
+    #if res_text != "": LOGGER.debug(f"Output Text:\n{res_text}")
     LOGGER.debug(f"Cost:{COST}")
     LOGGER.debug(f"Health:{HEALTH}")
     is_tool_call,name,args,call_id = parse_tools(res)
