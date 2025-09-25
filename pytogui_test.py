@@ -1,6 +1,7 @@
 import pyautogui as ptg
 import time
 from PIL import Image, ImageDraw
+import subprocess
 
 
 
@@ -29,8 +30,15 @@ def crop_around(img_path, x, y, box=320):
 chrome_x,chrome_y = ptg.center(ptg.locateOnScreen('chrome2.png'))
 ptg.click(x=chrome_x, y=chrome_y, clicks=1, interval=0, button='left') 
 ptg.click(x=748,y=960,clicks=1,interval=0,button='left')
-ptg.click(x=560,y=70,duration=0)
-ptg.typewrite('https://www.instacart.ca/store/\n', interval=0) # /n is enter.
+time.sleep(1)
+ptg.hotkey("ctrl","t")
+ptg.hotkey("ctrl","l")
+subprocess.run("clip", text=True, input="https://www.youtube.com/")
+ptg.hotkey("ctrl","v")            
+ptg.press("enter")   
+
+#ptg.click(x=560,y=70,duration=0)
+
 
 #print(chrome_x,chrome_y)
 

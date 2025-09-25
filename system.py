@@ -92,20 +92,8 @@ MESSAGES = [{"role":"system","content":get_system_prompt(width,height)}]
 HEALTH = 0.0
 COST = 0.0
 
-user_request = "Open slack" 
+user_request = "Go to https://www.youtube.com/" 
 MESSAGES.append({"role":"user","content":user_request})
-"""
-user_request_prompt = f"Generate a plan that you'll follow to complete the following task:\n{user_request}"
-
-MESSAGES.append({"role":"user","content":user_request_prompt})
-_,res_text,health,cost = llm_call(MESSAGES,GPT_5_NANO,TOOL_SPEC)
-MESSAGES.pop()
-if res_text == "": raise Exception('No plan generated...')
-LOGGER.debug(f"{res_text}")
-HEALTH = health
-COST += cost
-MESSAGES.append({"role":"user","content":f"{res_text}\nNow execute this plan to complete the task. Once done ask for further instruction."})
-"""
 
 LOGGER.info("Starting...")
 img_counter = 1
@@ -142,7 +130,6 @@ while True:
     MESSAGES.pop()
     COST += cost
     HEALTH = health
-    #if res_text != "": LOGGER.debug(f"Output Text:\n{res_text}")
     LOGGER.debug(f"Cost:{COST}")
     LOGGER.debug(f"Health:{HEALTH}")
     is_tool_call,name,args,call_id = parse_tools(res)
@@ -151,24 +138,7 @@ while True:
         result = execute_tools(name,args)
         LOGGER.debug(result)
         MESSAGES.append({"role":"assistant","content":result})
-        """
-        tool_call_req_msg = {
-            "type": "function_call",
-            "name": name,
-            "arguments": json.dumps(args or {}),
-            "call_id": call_id,
-        }
-
-        tool_call_msg = {
-            "type": "function_call_output",
-            "name": name,
-            "call_id": call_id,
-            "output": result
-        }
-
-        MESSAGES.append({"role":"assistant","content":json.dumps(tool_call_req_msg)})
-        MESSAGES.append({"role":"assistant","content":json.dumps(tool_call_msg)})
-        """
+        
     else:
         LOGGER.info(res_text)
         LOGGER.info("Task completed.")

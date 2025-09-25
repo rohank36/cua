@@ -1,6 +1,8 @@
 import pyautogui as ptg
 import json
 import logging
+import subprocess
+import time
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG) 
@@ -44,6 +46,41 @@ TOOL_SPEC = [
             "required": ["x", "y"],
             "additionalProperties": False
         }
+    },
+    {
+        "type": "function",
+        "name": "double_click", 
+        "description": "Double click at the current mouse position.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False
+        }
+    },
+    {
+        "type": "function",
+        "name": "click", 
+        "description": "Click at the current mouse position.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False
+        }
+    },
+    {
+        "type": "function",
+        "name": "go_to_website", 
+        "description": "When Google Chrome is already open, go to a website specific by it's url.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string"},
+            },
+            "required": ["url"],
+            "additionalProperties": False
+        }
     }
 ]
 
@@ -74,6 +111,8 @@ def execute_tools(name,args):
         "move_mouse_and_left_click": lambda a: move_mouse_and_left_click(a["x"], a["y"]),
         "open_google_chrome": lambda a: open_google_chrome(),
         "double_click": lambda a: double_click(),
+        "click": lambda a: click(),
+        "go_to_website": lambda a: go_to_website(a["url"])
     }
 
     if name not in tool_map:
@@ -91,6 +130,14 @@ def move_mouse_to(x,y):
     except Exception as e:
         LOGGER.error(e)
         return f"Error moving mouse: {e}"
+
+def click():
+    try:
+        ptg.click()
+        return f"Mouse clicked at current position"
+    except Exception as e:
+        LOGGER.error(e)
+        return f"Error clicking"
     
 def move_mouse_and_left_click(x,y):
     try:
@@ -106,14 +153,28 @@ def double_click():
         return f"Mouse double clicked"
     except Exception as e:
         LOGGER.error(e)
-        return f"Error moving mouse and left clicking: {e}"
+        return f"Error double clicking: {e}"
     
 def open_google_chrome():
     try:
-        chrome_x,chrome_y = ptg.center(ptg.locateOnScreen('chrome2.png'))
+        chrome_x,chrome_y = ptg.center(ptg.locateOnScreen('chrome.png'))
         ptg.click(x=chrome_x, y=chrome_y, clicks=1, interval=0, button='left') 
         ptg.click(x=748,y=960,clicks=2,interval=1,button='left')
         return "Google Chrome opened"
     except Exception as e:
         LOGGER.error(e)
         return "Error opening Google Chrome"
+
+def go_to_website(url):
+    try:
+        ptg.hotkey("ctrl","t")
+        ptg.hotkey("ctrl","l")
+        subprocess.run("clip", text=True, input=url) 
+        ptg.hotkey("ctrl","v")            
+        ptg.press("enter")  
+        time.sleep(5)
+        return f"Going to {url}"
+    except Exception as e:
+        LOGGER.error(e)
+        return f"Error going to {url}"
+
