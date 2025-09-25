@@ -19,6 +19,17 @@ TOOL_SPEC = [
             "required": ["x", "y"],
             "additionalProperties": False
         }
+    },
+    {
+        "type": "function",
+        "name": "open_google_chrome", 
+        "description": "Open the google chrome web browser.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False
+        }
     }
 ]
 
@@ -46,3 +57,19 @@ def parse_tools(res):
 
 def move_mouse_to(x,y):
     ptg.moveTo(x,y,duration=0.0)
+
+def move_mouse_and_left_click(x,y):
+    ptg.click(x=x,y=y,clicks=1,interval=0,button='left')
+
+def double_click():
+    ptg.doubleClick()
+
+def open_google_chrome():
+    try:
+        chrome_x,chrome_y = ptg.center(ptg.locateOnScreen('chrome2.png'))
+        ptg.click(x=chrome_x, y=chrome_y, clicks=1, interval=0, button='left') 
+        ptg.click(x=748,y=960,clicks=2,interval=1,button='left')
+        return True # True if success
+    except Exception as e:
+        LOGGER.error(e)
+        return False

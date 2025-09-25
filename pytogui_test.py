@@ -16,14 +16,50 @@ def annotate_with_cursor(img_path, x, y, radius=10):
     out = Image.alpha_composite(im, overlay).convert("RGB")
     out.save(img_path)  # overwrite original
 
-#ptg.moveTo(872,1067,duration=0.0)
-#cur_x,cur_y = ptg.position() 
-#print(cur_x,cur_y)
-annotate_with_cursor("foo.png",872,1067)
+def crop_around(img_path, x, y, box=320):
+    with Image.open(img_path) as im:
+        left = max(0, x - box//2); top  = max(0, y - box//2)
+        right = min(im.width, left + box); bottom = min(im.height, top + box)
+        crop = im.crop((left, top, right, bottom))
+        crop_path = img_path.replace(".png", "_crop.png")
+        crop.save(crop_path, format="PNG")
+        return crop_path
 
-#ptg.moveTo(872,1067,duration=0.0)
-#time.sleep(5)
+#chrome_location = ptg.locateOnScreen('chrome2.png')
+chrome_x,chrome_y = ptg.center(ptg.locateOnScreen('chrome2.png'))
+ptg.click(x=chrome_x, y=chrome_y, clicks=1, interval=0, button='left') 
+ptg.click(x=748,y=960,clicks=1,interval=0,button='left')
+ptg.click(x=560,y=70,duration=0)
+ptg.typewrite('https://www.instacart.ca/store/\n', interval=0) # /n is enter.
+
+#print(chrome_x,chrome_y)
+
+#ptg.click(x=885, y=1055, clicks=1, interval=0, button='left') 
+#ptg.click(x=748,y=960,clicks=1,interval=0,button='left')
+#ptg.click(x=950,y=60, interval=0,button='left')
+
+#time.sleep(3)
+#ptg.click('chrome_new_tab.PNG')
+
+#new_tab_loc = ptg.center(ptg.locateOnScreen('chrome_new_tab.PNG'))
+#print(new_tab_loc)
+
+
+
+
+
+
+
+
+
+
+
+#########################################
+
 #ptg.screenshot('foo.png')
+#annotate_with_cursor("foo.png",872,1067)
+#crop_around("foo.png",872,1067)
+
 
 #cur_screen_size = ptg.size()
 #print(cur_screen_size)
