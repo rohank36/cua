@@ -2,5 +2,6 @@
 .env
 /__pycache__
 /images
+/image_archive
 test.py
 llm_call_test.py

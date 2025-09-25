@@ -10,7 +10,7 @@ from datetime import datetime
 import logging
 import time
 import uuid
-from tools import TOOL_SPEC, move_mouse_to, parse_tools
+from tools import TOOL_SPEC, execute_tools, parse_tools
 import json
 ################################################################
 load_dotenv()    
@@ -76,6 +76,15 @@ def annotate_with_cursor(img_path, x, y, radius=10):
     d.line((x, y-15, x, y+15), fill=(255,0,0,255), width=2)
     out = Image.alpha_composite(im, overlay).convert("RGB")
     out.save(img_path)
+
+def crop_around(img_path, x, y, box=320):
+    with Image.open(img_path) as im:
+        left = max(0, x - box//2); top  = max(0, y - box//2)
+        right = min(im.width, left + box); bottom = min(im.height, top + box)
+        crop = im.crop((left, top, right, bottom))
+        crop_path = img_path.replace(".png", "_crop.png")
+        crop.save(crop_path, format="PNG")
+        return crop_path
 ################################################################
 
 width,height = ptg.size()
@@ -83,9 +92,9 @@ MESSAGES = [{"role":"system","content":get_system_prompt(width,height)}]
 HEALTH = 0.0
 COST = 0.0
 
-#user_request = input(">")
-#user_request = user_request.strip(">").strip("")
-user_request = "Move the mouse to google chrome" 
+user_request = "Open slack" 
+MESSAGES.append({"role":"user","content":user_request})
+"""
 user_request_prompt = f"Generate a plan that you'll follow to complete the following task:\n{user_request}"
 
 MESSAGES.append({"role":"user","content":user_request_prompt})
@@ -96,6 +105,7 @@ LOGGER.debug(f"{res_text}")
 HEALTH = health
 COST += cost
 MESSAGES.append({"role":"user","content":f"{res_text}\nNow execute this plan to complete the task. Once done ask for further instruction."})
+"""
 
 LOGGER.info("Starting...")
 img_counter = 1
@@ -109,15 +119,22 @@ while True:
     cur_x,cur_y = ptg.position()
     ptg.screenshot(path)
     annotate_with_cursor(path,cur_x,cur_y) 
-    base64_image = encode_image(path)
+    crop_around(path,cur_x,cur_y)
+    base64_image_1 = encode_image(path)
+    base64_image_2 = encode_image(path.replace(".png", "_crop.png"))
     MESSAGES.append(
         {"role":"user","content":[
-                {   "type": "input_text", "text": f"The current mouse position is: ({cur_x},{cur_y})" },
+                {   "type": "input_text", "text": f"The current cursor position is: ({cur_x},{cur_y})" },
                 {   "type": "input_text", "text": f"Here is an image of the current screen state" },
                 {
                     "type": "input_image",
-                    "image_url": f"data:image/png;base64,{base64_image}",
-                }
+                    "image_url": f"data:image/png;base64,{base64_image_1}",
+                },
+                {   "type": "input_text", "text": f"Here is a cropped image around the current cursor position to give YOU a clearer idea of where the cursor is." },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/png;base64,{base64_image_2}",
+                },
             ]
         }
     )
@@ -131,16 +148,7 @@ while True:
     is_tool_call,name,args,call_id = parse_tools(res)
 
     if is_tool_call:
-        result = None
-        if name == "move_mouse_to":
-            x = args.get("x")
-            y = args.get("y")
-            try:
-                move_mouse_to(x, y)
-                result = f"Mouse moved to ({x},{y})"
-            except Exception as e:
-                result = f"Error moving mouse: {e}"
-
+        result = execute_tools(name,args)
         LOGGER.debug(result)
         MESSAGES.append({"role":"assistant","content":result})
         """
