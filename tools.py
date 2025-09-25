@@ -81,8 +81,35 @@ TOOL_SPEC = [
             "required": ["url"],
             "additionalProperties": False
         }
+    },
+    {
+        "type": "function",
+        "name": "type", 
+        "description": "Types the input text, this assumes a input box has already been selected by clicking.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string"},
+            },
+            "required": ["text"],
+            "additionalProperties": False
+        }
+    },
+    {
+        "type": "function",
+        "name": "type_and_submit", 
+        "description": "Types the input text then presses enter, this assumes a input box has already been selected by clicking.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string"},
+            },
+            "required": ["text"],
+            "additionalProperties": False
+        }
     }
 ]
+
 
 def parse_tools(res):
     tool_calls = []
@@ -112,7 +139,9 @@ def execute_tools(name,args):
         "open_google_chrome": lambda a: open_google_chrome(),
         "double_click": lambda a: double_click(),
         "click": lambda a: click(),
-        "go_to_website": lambda a: go_to_website(a["url"])
+        "go_to_website": lambda a: go_to_website(a["url"]),
+        "type": lambda a: type(a["text"]),
+        "type_and_submit": lambda a: type_and_submit(a["text"]),
     }
 
     if name not in tool_map:
@@ -178,3 +207,19 @@ def go_to_website(url):
         LOGGER.error(e)
         return f"Error going to {url}"
 
+def type(text):
+    try:
+        ptg.typewrite(text, interval=0) 
+        return "Text typed sucessfully"
+    except Exception as e:
+        LOGGER.error(e)
+        return f"Error typing: {e}"
+    
+def type_and_submit(text):
+    try:
+        ptg.typewrite(f'{text}\n', interval=0) 
+        time.sleep(2)
+        return "Text typed and submitted sucessfully"
+    except Exception as e:
+        LOGGER.error(e)
+        return f"Error typing or submitting: {e}"
